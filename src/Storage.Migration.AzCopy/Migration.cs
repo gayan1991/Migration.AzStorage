@@ -56,7 +56,7 @@ namespace Storage.Migration.AzCopy
                 {
                     switch (account.Filter.Type)
                     {
-                        case FilterationType.Date:
+                        case FiltrationType.Date:
 
                             _logger.WriteLine($"Listing all blob containers for {account.SourceAccountName}");
                             var containers = await _azService.GetContainerList(account.SourceAccountName,
@@ -66,7 +66,7 @@ namespace Storage.Migration.AzCopy
                             var dt = DateTimeOffset.Parse(account.Filter.Value.Trim());
                             await CopyContainers(account, containers.Where(x => x.LastModified >= dt).Select(x => x.Name).ToArray());
                             break;
-                        case FilterationType.Name:
+                        case FiltrationType.Name:
                             await CopyContainers(account, account.Filter.Value.Trim().Split(','));
                             break;
                     }

@@ -30,17 +30,17 @@
             var myUri = new Uri(url);
             var storageAccountName = myUri.Host;
             var index = storageAccountName.IndexOf(".blob");
-            return storageAccountName.Substring(0, index);
+            return storageAccountName[..index];
         }
     }
 
     public class ContainerFiltration
     {
-        public FilterationType Type { get; set; }
+        public FiltrationType Type { get; set; }
         public string Value { get; set; } = null!;
     }
 
-    public enum FilterationType : byte
+    public enum FiltrationType : byte
     {
         Name = 0,
         Date = 1
