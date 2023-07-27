@@ -3,11 +3,37 @@
     {
       "sourceResourceGroup": "ResourceGroup",
       "sourceUrl": "https://store1.blob.core.windows.net/",
+      "targetResourceGroup": "store2",
+      "targetUrl": "https://testmigrationprodisstrak.blob.core.windows.net/",
+      "filter": {
+        "type": 0,
+        "filters": [
+          "container1",
+          "container2"
+        ]
+      }
+    },
+    {
+      "sourceResourceGroup": "ResourceGroup",
+      "sourceUrl": "https://store1.blob.core.windows.net/",
       "targetResourceGroup": "ResourceGroup2",
       "targetUrl": "https://store2.blob.core.windows.net/",
       "filter": {
         "type": 1,
         "value": "2022-01-01"
+      }
+    },
+    {
+      "sourceResourceGroup": "ResourceGroup",
+      "sourceUrl": "https://store1.blob.core.windows.net/",
+      "targetResourceGroup": "ResourceGroup2",
+      "targetUrl": "https://store2.blob.core.windows.net/",
+      "filter": {
+        "type": 2,
+        "filters": [
+          "container1:dt2023-01-01",
+          "container2:dt2023-01-01"
+        ]
       }
     }
   ],

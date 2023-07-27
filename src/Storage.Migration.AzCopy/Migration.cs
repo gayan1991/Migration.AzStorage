@@ -12,6 +12,9 @@ namespace Storage.Migration.AzCopy
         private readonly ILogger _logger;
         private readonly IAzService _azService;
 
+        private readonly List<Task> _tasks = new();
+        private int count = 0;
+
         public Migration(IAzService azService, ILogger logger)
         {
             _logger = logger;
@@ -67,7 +70,10 @@ namespace Storage.Migration.AzCopy
                             await CopyContainers(account, containers.Where(x => x.LastModified >= dt).Select(x => x.Name).ToArray());
                             break;
                         case FiltrationType.Name:
-                            await CopyContainers(account, account.Filter.Value.Trim().Split(','));
+                            await CopyContainers(account, account.Filter.Filters);
+                            break;
+                        case FiltrationType.IncludePatterns:
+                            await CopyBlobs(account, account.Filter.Filters);
                             break;
                     }
                 }
@@ -83,9 +89,12 @@ namespace Storage.Migration.AzCopy
                                                                             account.TargetStorageKey,
                                                                             account.TargetUrl);
 
-                    await Copy(source, target);
+                    count++;
+                    _tasks.Add(_azService.Copy(source, target));
                 }
             }
+
+            await Copy();
         }
 
         #region Private
@@ -119,8 +128,61 @@ namespace Storage.Migration.AzCopy
                                                                         account.TargetUrl,
                                                                         container.Trim());
 
-                await Copy(source, target);
+                count++;
+                _tasks.Add(_azService.Copy(source, target));
             }
+        }
+
+        private async Task CopyBlobs(StorageConfig account, string[] filters)
+        {
+            foreach (var filter in filters)
+            {
+                var container = ContainerFiltration.ExtractContainerName(filter);
+
+                if (string.IsNullOrWhiteSpace(container.Value))
+                {
+                    await CopyContainers(account, new string[] { filter });
+                    return;
+                }
+
+                _logger.WriteLine($"SAS URL is creation process is started for {account.SourceAccountName}:{container.Key}");
+                var source = await _azService.GenerateBlobStorageSASUrl(account.SourceAccountName,
+                                                                       account.SourceStorageKey,
+                                                                       account.SourceUrl,
+                                                                       container.Key.Trim());
+
+                _logger.WriteLine($"SAS URL is creation process is started for {account.TargetAccountName}:{container.Key}");
+                var target = await _azService.GenerateBlobStorageSASUrl(account.TargetAccountName,
+                                                                        account.TargetStorageKey,
+                                                                        account.TargetUrl,
+                                                                        container.Key.Trim());
+
+                if (container.Value[0] == '*')
+                {
+                    _tasks.Add(_azService.Copy(source, target, container.Value[1..], AttributeType.Pattern));
+                }
+                else if (container.Value.Contains("dt"))
+                {
+                    _tasks.Add(_azService.Copy(source, target, container.Value.Replace("dt", string.Empty), AttributeType.After));
+                }
+                else
+                {
+                    _tasks.Add(_azService.Copy(source, target, container.Value));
+                }
+            }
+        }
+
+        private async Task Copy()
+        {
+            var sw = Stopwatch.StartNew();
+            _logger.WriteLine($"AzCopy execution begins for {count} tasks");
+            _logger.WriteLine($"Starts at {DateTimeOffset.Now}");
+
+            await Task.WhenAll(_tasks);
+
+            sw.Stop();
+            _logger.WriteLine(sw.Elapsed.ToString());
+            _logger.WriteLine($"finishes at {DateTimeOffset.Now}");
         }
 
         private async Task Copy(string source, string target)

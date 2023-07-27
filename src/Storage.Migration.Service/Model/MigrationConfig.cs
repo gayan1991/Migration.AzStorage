@@ -38,11 +38,32 @@
     {
         public FiltrationType Type { get; set; }
         public string Value { get; set; } = null!;
+        public string[] Filters { get; set; } = null!;
+
+        public static KeyValuePair<string, string> ExtractContainerName(string filter)
+        {
+            var index = filter.IndexOf(":");
+
+            if (index == -1)
+            {
+                return new KeyValuePair<string, string>(filter, string.Empty);
+            }
+
+            return new KeyValuePair<string, string>(filter[..index], filter[(index + 1)..]);
+        }
     }
 
     public enum FiltrationType : byte
     {
         Name = 0,
-        Date = 1
+        Date = 1,
+        IncludePatterns = 2
+    }
+
+    public enum AttributeType : byte
+    {
+        Path = 0,
+        Pattern = 1,
+        After = 2
     }
 }
